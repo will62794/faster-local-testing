@@ -1,0 +1,26 @@
+
+
+-- Revised Workflow (Oct. 14, 2019) --
+
+1. Download logs from a particular task with `python getlogs.py <task_id>`. Logs are stored in logs/ directory.
+
+2. Run ./statsrepl.sh to extract metrics from all replica sets logs in logs/ and compile them into one big CSV file, `csv/replica_sets.csv`. Run ./statssharding.sh to do the same for all sharding log files.
+
+3. Run `Rscript hist.r csv/replica_sets.csv charts/replica_sets.pdf` to generate replica_sets histogram plot. Or run
+`Rscript hist.r csv/sharding.csv charts/sharding.pdf` for sharding.
+
+4. Run `Rscript stats.r csv/replica_sets.csv csv/replica_sets_summary.csv` to generate summary stats in `csv/replica_sets_summary.csv`. Or `Rscript stats.r csv/sharding.csv csv/sharding_summary.csv` for sharding.
+
+
+# Generate a table suitable for JIRA based on summary stats CSV file.
+cat csv/replica_sets_summary.csv | sed -E "s/,/|/g" | sed -E "s/^/|/" | sed -E "s/$/|/"
+
+
+Folder Overview:
+
+logs/
+  Stores downloaded log files.
+charts/
+  Stores generated histogram plots.
+csv/
+  Stores metrics extracted from a collection of log files, in addition to summary stats.

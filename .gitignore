@@ -1,0 +1,8 @@
+logs/
+charts/
+scratch/
+traces/
+csv/
+*.pdf
+*.csv
+.DS_Store
