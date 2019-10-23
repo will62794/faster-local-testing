@@ -13,7 +13,7 @@ for i in `ls ${logdir} | grep -v "csv" | grep "replica_sets"`; do
 echo "Processing $i"
 # We also add the metadata columns which are contained in the filename.
 grep "ReplSetTest.*took" logs/$i \
-| sed -E -e "s/\[.*:(.*)\].*(startSet).*took (.*)ms for (.*) nodes.*/$i,\1,\2,\3,\4/" \
+| sed -E -e "s/\[.*:(.*)\].*(startSet) took (.*)ms for (.*) nodes.*/$i,\1,\2,\3,\4/" \
          -e "s/\[.*:(.*)\].*stopSet stopped.*took (.*)ms for (.*) nodes.*/$i,\1,stopSetShutdown,\2,\3/" \
          -e "s/\[.*:(.*)\].*stopSet data consistency.*took (.*)ms for (.*) nodes.*/$i,\1,stopSetConsistencyChecks,\2,\3/" \
          -e "s/\[.*:(.*)\].*(initiateWithNodeZeroAsPrimary).*took (.*)ms for (.*) nodes.*/$i,\1,\2,\3,\4/" \

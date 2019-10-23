@@ -78,8 +78,8 @@ def check_task(task_id):
     f.close()
 
 if __name__ == "__main__":
-    task = sys.argv[1]
     # Must provide Evergreen credentials via command line.
-    API_USER = sys.argv[2]
-    API_KEY = sys.argv[3]
+    API_USER = sys.argv[1]
+    API_KEY = sys.argv[2]
+    task = sys.argv[3]
     check_task(task)
