@@ -8,13 +8,14 @@ library("stringr")
 histplot <- function(data) {
      plt <- ggplot(data, aes(x=duration, fill=factor(num_nodes))) +
           geom_histogram(binwidth=100, size=0.1, color="black") +
-          ylim(0, 150) + 
           # Filter out some outliers for presentation.
           xlim(0, 10000) +  
           # Add annotations to each facet.
           facet_grid(vars(build_variant), vars(metric), labeller = label_value, switch = "y") +
+          #facet_grid(vars(revision), vars(metric), labeller = label_value, switch = "y") +
           # Move axis ticks to the right. 
           scale_y_continuous("count", position="right") + 
+          ylim(0, 300) + 
           theme(strip.text.y = element_text(size = 8, angle = 180))
      return(plt)
 }
