@@ -24,3 +24,7 @@ charts/
   Stores generated histogram plots.
 csv/
   Stores metrics extracted from a collection of log files, in addition to summary stats.
+
+
+# Getting quick summary stats for a patch.
+xsv search -s patch_id 5de952fee3c33113884c24cc csv/replica_sets.csv | xsv search -s metric initiateWithNodeZero | xsv select duration | xsv stats --everything
