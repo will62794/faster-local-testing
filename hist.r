@@ -49,7 +49,7 @@ for(row in 1:nrow(combos)){
      # Select the subset of data we want.
      replsub <- repl[repl$patch_id == combos[row,"patch_id"] & repl$build_variant == combos[row,"build_variant"] & repl$display_name == combos[row,"display_name"] & repl$revision == combos[row,"revision"]& repl$metric == combos[row,"metric"],]
      # For sharding tests, use a larger scale.
-     xmax <- if(is.element("stopShards", factor(repl$metric))) 20000 else 10000
+     xmax <- if(is.element("stopShards", factor(repl$metric))) 20000 else if(metric == "totalDuration") 100000 else 10000
      subplt <- histplot(replsub, metric, xmax)
 
      # Save the plot.

@@ -9,6 +9,8 @@ import sys
 import pprint
 import urllib2
 import os
+from datetime import datetime
+import time
 
 # MongoDB 'master' branch project identifier in Evergreen.
 MONGO_PROJECT = "mongodb-mongo-master"
@@ -37,6 +39,25 @@ def get_task(task_id):
 
 def get_log(url):
     return requests.get(url).text
+
+def save_test_durations(tests, file_prefix):
+    """ Extract and save the execution times for each test in the given set. """
+    durations = []
+    for t in tests:
+        test_name = t['test_file'].split("/")[-1].split(".")[0]
+        startt = float(datetime.strptime(t['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%s.%f'))
+        endt = float(datetime.strptime(t['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%s.%f'))
+        duration_ms = (endt-startt)*1000
+        duration = [test_name, duration_ms]
+        print duration
+        durations.append(duration)
+
+    out_file = file_prefix + ",durations"
+    f = open(out_file, "w")
+    for d in durations:
+        row = ",".join([str(el) for el in d])
+        f.write(row + "\n")
+    return durations
 
 def check_task(task_id):
     """ Get all log files for a given task id. """
@@ -70,6 +91,10 @@ def check_task(task_id):
     elems = [task["build_variant"], task["display_name"], patch_id, task["revision"]]
     out_file_name = ",".join(elems)
     out_file = logs_dir + "/" + out_file_name
+
+    # Save the total durations of tests to a separate file as well. This file will just be a CSV.
+    save_test_durations(tests, out_file)
+
     f = open(out_file, "w")
     for url in job_log_urls:
         print "Downloading log file: " + url
