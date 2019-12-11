@@ -10,7 +10,7 @@ csv="csv/replica_sets.csv"
 echo "build_variant,display_name,patch_id,revision,test_name,metric,duration,num_nodes" > $csv
 
 # Ignore 'durations' logs.
-for i in `ls ${logdir} | grep -v "csv" | grep -v "_durations" | grep "replica_sets"`; do  
+for i in `ls ${logdir} | grep -v "csv" | grep -v ",durations" | grep "replica_sets"`; do  
 echo "Processing $i"
 # We also add the metadata columns which are contained in the filename.
 grep "ReplSetTest.*took" logs/$i \

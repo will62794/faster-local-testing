@@ -49,7 +49,6 @@ def save_test_durations(tests, file_prefix):
         endt = float(datetime.strptime(t['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%s.%f'))
         duration_ms = (endt-startt)*1000
         duration = [test_name, duration_ms]
-        print duration
         durations.append(duration)
 
     out_file = file_prefix + ",durations"
@@ -93,6 +92,7 @@ def check_task(task_id):
     out_file = logs_dir + "/" + out_file_name
 
     # Save the total durations of tests to a separate file as well. This file will just be a CSV.
+    print "Saving test durations."
     save_test_durations(tests, out_file)
 
     f = open(out_file, "w")
