@@ -58,7 +58,7 @@ def save_test_durations(tests, file_prefix):
         f.write(row + "\n")
     return durations
 
-def check_task(task_id):
+def check_task(task_id, durations_only):
     """ Get all log files for a given task id. """
     task = get_task(task_id)
     logs_dir = "logs"
@@ -94,6 +94,8 @@ def check_task(task_id):
     # Save the total durations of tests to a separate file as well. This file will just be a CSV.
     print "Saving test durations."
     save_test_durations(tests, out_file)
+    if durations_only:
+        return
 
     f = open(out_file, "w")
     for url in job_log_urls:
@@ -107,4 +109,7 @@ if __name__ == "__main__":
     API_USER = sys.argv[1]
     API_KEY = sys.argv[2]
     task = sys.argv[3]
-    check_task(task)
+    durations_only = False
+    if len(sys.argv) > 4:
+        durations_only = (sys.argv[4] == "durations")
+    check_task(task, durations_only)
