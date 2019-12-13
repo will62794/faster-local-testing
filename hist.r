@@ -5,18 +5,22 @@
 library("ggplot2")
 library("stringr")
 
-histplot <- function(data, title, xmax, ymax) {
+histplot <- function(data, title, xmax, ymax, binwdth) {
+     med <- round(median(data$duration))
+     pct75 <- round(quantile(data$duration, 0.75))
+     pct95 <- round(quantile(data$duration, 0.95))
+     unit <- ymax / 10
      plt <- ggplot(data, aes(x=duration, fill=factor(num_nodes))) +
-          geom_histogram(binwidth=100, size=0.1, color="black") +
+          geom_histogram(binwidth=binwdth, size=0.1, color="black") +
           geom_vline(aes(xintercept=median(data$duration, na.rm=T)), color="lightcoral", linetype="dashed", size=0.45, alpha=0.5) +
           geom_vline(aes(xintercept=quantile(data$duration, 0.75)), color="blue", linetype="dashed", size=0.45, alpha=0.5) +
           geom_vline(aes(xintercept=quantile(data$duration, 0.95)), color="black", linetype="dashed", size=0.45, alpha=0.5) +
              # Filter out some outliers for presentation.
           xlim(0, xmax) +  
           ggtitle(title) + 
-          annotate("text", x = (xmax - 1500), y = (ymax - 50), size=3.0, color="lightcoral", label = paste("median", round(median(data$duration)),sep="=")) + 
-          annotate("text", x = (xmax - 1500), y = (ymax - 80), size=3.0, color="blue", label = paste("75th pct", round(quantile(data$duration, 0.75)),sep="=")) + 
-          annotate("text", x = (xmax - 1500), y = (ymax - 110), size=3.0, label = paste("95th pct", round(quantile(data$duration, 0.95)),sep="=")) + 
+          annotate("text", x = xmax, hjust = 1, vjust=0, y = ymax, size=3.0, color="lightcoral", label = paste("median", round(median(data$duration)),sep="=")) + 
+          annotate("text", x = xmax, hjust = 1, vjust=0, y = ymax - (unit*1), size=3.0, color="blue", label = paste("75th pct", round(quantile(data$duration, 0.75)),sep="=")) + 
+          annotate("text", x = xmax, hjust = 1, vjust=0, y = ymax - (unit*2), size=3.0, label = paste("95th pct", round(quantile(data$duration, 0.95)),sep="=")) + 
           # Add annotations to each facet.
           #facet_grid(vars(build_variant), vars(metric), labeller = label_value, switch = "y") +
           #facet_grid(vars(revision), vars(metric), labeller = label_value, switch = "y") +
@@ -49,9 +53,10 @@ for(row in 1:nrow(combos)){
      # Select the subset of data we want.
      replsub <- repl[repl$patch_id == combos[row,"patch_id"] & repl$build_variant == combos[row,"build_variant"] & repl$display_name == combos[row,"display_name"] & repl$revision == combos[row,"revision"]& repl$metric == combos[row,"metric"],]
      # For sharding tests, use a larger scale.
-     xmax <- if(is.element("stopShards", factor(repl$metric))) 20000 else if(metric == "totalDuration") 100000 else 10000
+     xmax <- if(metric == "totalDuration") 100000 else if(is.element("stopShards", factor(repl$metric))) 20000 else 10000
      ymax <- if(metric == "totalDuration") 80 else 300
-     subplt <- histplot(replsub, metric, xmax, ymax)
+     binwidth <- 100
+     subplt <- histplot(replsub, metric, xmax, ymax, binwidth)
 
      # Save the plot.
      ident <- paste(patch_id, build_variant, revision, metric,sep =",")
