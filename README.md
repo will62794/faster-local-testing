@@ -21,8 +21,8 @@ To extract metrics from all the downloaded log files, for *sharding* and *replic
 which processes all files in the `logs` directory and outputs a CSV file in the `csv` directory, named `csv/replica_sets.csv` or `csv/sharding.csv`, respectively. Finally, to generate charts visualizing the extracted metrics for *sharding* or *replica_sets* suites, you can run
 
 ```
-Rscript stats.r csv/replica_sets.csv csv/replica_sets_summary.csv
-Rscript stats.r csv/sharding.csv csv/sharding_summary.csv
+Rscript hist.r csv/replica_sets.csv csv/replica_sets_summary.csv
+Rscript hist.r csv/sharding.csv csv/sharding_summary.csv
 ```
 
 which should produce PNG charts inside the `charts` directory. The charts are generated using R and ggplot2, so you should have those installed, which you should be able to test by running `Rscript` from the command line. 
