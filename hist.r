@@ -54,7 +54,7 @@ for(row in 1:nrow(combos)){
      replsub <- repl[repl$patch_id == combos[row,"patch_id"] & repl$build_variant == combos[row,"build_variant"] & repl$display_name == combos[row,"display_name"] & repl$revision == combos[row,"revision"]& repl$metric == combos[row,"metric"],]
      # For sharding tests, use a larger scale.
      xmax <- if(metric == "totalDuration") 100000 else if(is.element("stopShards", factor(repl$metric))) 20000 else 10000
-     ymax <- if(metric == "totalDuration") 80 else 300
+     ymax <- if(metric == "totalDuration") 50 else 300
      binwidth <- 100
      subplt <- histplot(replsub, metric, xmax, ymax, binwidth)
 
