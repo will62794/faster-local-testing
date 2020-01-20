@@ -112,4 +112,8 @@ if __name__ == "__main__":
     durations_only = False
     if len(sys.argv) > 4:
         durations_only = (sys.argv[4] == "durations")
+    
+    # Create output directory if it doesn't exist.
+    os.system("mkdir -p logs")
+    
     check_task(task, durations_only)
