@@ -89,6 +89,10 @@ def check_task(task_id, durations_only):
 
     # Get all tests from this task.
     tests = get_tests(task_id, 10000)
+    if type(tests) == dict and tests.get('status') != 200:
+        print 'Error', tests['status'], tests.get('error')
+        return
+
     test_log_urls = [test['logs']['url_raw'] for test in tests]
     job_log_urls = list(
         set([u[:u.find("/test/")] + "/all?raw=1" for u in test_log_urls]))
@@ -111,7 +115,18 @@ def check_task(task_id, durations_only):
     f = open(out_file, "w")
     for url in job_log_urls:
         print "Downloading log file: " + url
-        text = urllib2.urlopen(url).read()
+        max_tries = 10
+        while True:
+            try:
+                text = urllib2.urlopen(url).read()
+                break
+            except Exception as exc:
+                if max_tries:
+                    print exc, "Retrying..."
+                    max_tries -= 1
+                else:
+                    print repr(exc), "Giving up"
+
         f.write(text)
     f.close()
 
