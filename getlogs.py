@@ -4,12 +4,13 @@
 
 import argparse
 import os
-import urllib2
 from datetime import datetime
 
 import requests
 
 # MongoDB 'master' branch project identifier in Evergreen.
+import tqdm
+
 MONGO_PROJECT = "mongodb-mongo-master"
 
 # The Evergreen REST API endpoint.
@@ -66,6 +67,17 @@ def save_test_durations(tests, file_prefix):
         f.write(row + "\n")
     return durations
 
+def download_file(url, filename):
+    r = requests.get(url, stream=True)
+    chunk_size = 1024
+
+    with open(filename, 'wb') as fp:
+        for chunk in tqdm.tqdm(
+                r.iter_content(chunk_size=chunk_size),
+                unit='KB',
+                desc=filename):
+            fp.write(chunk)
+
 def check_task(task_id, durations_only):
     """ Get all log files for a given task id. """
     task = get_task(task_id)
@@ -96,8 +108,6 @@ def check_task(task_id, durations_only):
     print str(len(tests)) + " tests for this task.", str(len(job_log_urls)) + " job log URLs."
 
     # Save the log files into one big file.
-    out_file = logs_dir + "/" + task_id
-
     # Include identifying information in the log file name.
     elems = [task["build_variant"], task["display_name"], patch_id, task["revision"]]
     out_file_name = ",".join(elems)
@@ -109,23 +119,19 @@ def check_task(task_id, durations_only):
     if durations_only:
         return
 
-    f = open(out_file, "w")
     for url in job_log_urls:
         print "Downloading log file: " + url
         max_tries = 10
         while True:
             try:
-                text = urllib2.urlopen(url).read()
+                download_file(url, out_file)
                 break
             except Exception as exc:
                 if max_tries:
-                    print exc, "Retrying..."
+                    print repr(exc), "Retrying..."
                     max_tries -= 1
                 else:
                     print repr(exc), "Giving up"
-
-        f.write(text)
-    f.close()
 
 def check_version(version_id, durations_only):
     version = get_version(version_id)
@@ -133,11 +139,15 @@ def check_version(version_id, durations_only):
     print "Version ID:", version_id
     print len(version['builds']), "builds"
 
-    for build_id in version['builds']:
-        print "Build ID:", build_id
-        build = get_build(build_id)
-        for task in build['tasks'].values():
-            check_task(task['task_id'], durations_only)
+    builds = [get_build(build_id) for build_id in version['builds']]
+    tasks = [task for build in builds for task in build['tasks'].values()]
+    print len(tasks), "tasks"
+
+    for i, task in enumerate(tasks):
+        print "Task ID: %s, %d of %d" % (
+            task['task_id'], i, len(tasks))
+
+        check_task(task['task_id'], durations_only)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
