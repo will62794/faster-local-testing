@@ -2,15 +2,12 @@
 # Fetch log URLs for all logs of a given Evergreen task.
 #
 
-import requests
-import time
 import argparse
-import sys
-import pprint
-import urllib2
 import os
+import urllib2
 from datetime import datetime
-import time
+
+import requests
 
 # MongoDB 'master' branch project identifier in Evergreen.
 MONGO_PROJECT = "mongodb-mongo-master"
