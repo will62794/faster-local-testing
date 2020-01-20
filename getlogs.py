@@ -27,14 +27,25 @@ API_KEY = "" # must be set via command line.
 def header():
     return {"Api-User": API_USER, "Api-Key": API_KEY}
 
-def get_tests(task_id, limit):
-    url_task_tests = API_URL + "/tasks/" + task_id + "/tests"
-    r = requests.get(url=url_task_tests, params={"limit": limit}, headers=header())
+def _get_resource(resource_type, resource_id):
+    # Note the "s": we get a version from "/versions/".
+    url = API_URL_V1 + "/" + resource_type + "s/" + resource_id
+    r = requests.get(url=url, headers=header())
     return r.json()
 
+def get_version(version_id):
+    return _get_resource('version', version_id)
+
+def get_build(build_id):
+    return _get_resource('build', build_id)
+
 def get_task(task_id):
-    url_task = API_URL_V1 + "/tasks/" + task_id
-    r = requests.get(url=url_task, headers=header())
+    return _get_resource('task', task_id)
+
+def get_tests(task_id, limit):
+    url_task_tests = API_URL + "/tasks/" + task_id + "/tests"
+    r = requests.get(url=url_task_tests, params={"limit": limit},
+                     headers=header())
     return r.json()
 
 def get_log(url):
@@ -104,16 +115,40 @@ def check_task(task_id, durations_only):
         f.write(text)
     f.close()
 
+def check_version(version_id, durations_only):
+    version = get_version(version_id)
+
+    print "Version ID:", version_id
+    print len(version['builds']), "builds"
+
+    for build_id in version['builds']:
+        print "Build ID:", build_id
+        build = get_build(build_id)
+        for task in build['tasks'].values():
+            check_task(task['task_id'], durations_only)
+
 if __name__ == "__main__":
-    # Must provide Evergreen credentials via command line.
-    API_USER = sys.argv[1]
-    API_KEY = sys.argv[2]
-    task = sys.argv[3]
-    durations_only = False
-    if len(sys.argv) > 4:
-        durations_only = (sys.argv[4] == "durations")
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('API_USER', help='Evergreen username', nargs=1)
+    parser.add_argument('API_KEY', help='Evergreen API key', nargs=1)
+    parser.add_argument('--task', help='Evergreen task ID')
+    parser.add_argument('--version', help='Evergreen version ID or patch ID')
+    parser.add_argument('--durations-only', action='store_true',
+                        help='Measure durations without fetching logs')
+
+    args = parser.parse_args()
+
+    API_USER = args.API_USER[0]
+    API_KEY = args.API_KEY[0]
+    if not args.task and not args.version:
+        parser.error('Must supply --task or --version')
+    elif args.task and args.version:
+        parser.error('Cannot supply both --task and --version')
+
     # Create output directory if it doesn't exist.
     os.system("mkdir -p logs")
-    
-    check_task(task, durations_only)
+
+    if args.task:
+        check_task(args.task, args.durations_only)
+    else:
+        check_version(args.version, args.durations_only)
