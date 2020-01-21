@@ -1,10 +1,11 @@
-#
-# Fetch log URLs for all logs of a given Evergreen task.
-#
+"""
+Fetch logs of a given Evergreen patch/version build, or one task within a build.
+"""
 
 import argparse
 import os
 from datetime import datetime
+import re
 
 import requests
 
@@ -133,7 +134,7 @@ def check_task(task_id, durations_only):
                 else:
                     print repr(exc), "Giving up"
 
-def check_version(version_id, durations_only):
+def check_version(version_id, durations_only, task_pattern):
     version = get_version(version_id)
 
     print "Version ID:", version_id
@@ -144,19 +145,34 @@ def check_version(version_id, durations_only):
     print len(tasks), "tasks"
 
     for i, task in enumerate(tasks):
-        print "Task ID: %s, %d of %d" % (
-            task['task_id'], i, len(tasks))
+        task_id = task['task_id']
+        if task['status'] == 'failed':
+            continue
 
-        check_task(task['task_id'], durations_only)
+        if task_pattern and not task_pattern.match(task_id):
+            continue
+
+        print "Task ID: %s, %d of %d" % (task_id, i, len(tasks))
+        check_task(task_id, durations_only)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('API_USER', help='Evergreen username', nargs=1)
-    parser.add_argument('API_KEY', help='Evergreen API key', nargs=1)
-    parser.add_argument('--task', help='Evergreen task ID')
-    parser.add_argument('--version', help='Evergreen version ID or patch ID')
-    parser.add_argument('--durations-only', action='store_true',
-                        help='Measure durations without fetching logs')
+    parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument('API_USER',
+                        help='Evergreen username',
+                        nargs=1)
+    parser.add_argument('API_KEY',
+                        help='Evergreen API key',
+                        nargs=1)
+    parser.add_argument('--task',
+                        help='Evergreen task ID')
+    parser.add_argument('--task-pattern',
+                        help='Python regex to match task names within a build',
+                        type=re.compile)
+    parser.add_argument('--version',
+                        help='Evergreen version ID or patch ID')
+    parser.add_argument('--durations-only',
+                        help='Measure durations without fetching logs',
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -166,6 +182,8 @@ if __name__ == "__main__":
         parser.error('Must supply --task or --version')
     elif args.task and args.version:
         parser.error('Cannot supply both --task and --version')
+    elif args.task_pattern and not args.version:
+        parser.error('Cannot supply both --task and task-pattern')
 
     # Create output directory if it doesn't exist.
     os.system("mkdir -p logs")
@@ -173,4 +191,4 @@ if __name__ == "__main__":
     if args.task:
         check_task(args.task, args.durations_only)
     else:
-        check_version(args.version, args.durations_only)
+        check_version(args.version, args.durations_only, args.task_pattern)
