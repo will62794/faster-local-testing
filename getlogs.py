@@ -4,10 +4,10 @@ Fetch logs of a given Evergreen patch/version build, or one task within a build.
 
 import argparse
 import os
-from datetime import datetime
 import re
 
 import requests
+from dateutil.parser import parse as dateutil_parse
 
 # MongoDB 'master' branch project identifier in Evergreen.
 import tqdm
@@ -55,8 +55,8 @@ def save_test_durations(tests, file_prefix):
     durations = []
     for t in tests:
         test_name = t['test_file'].split("/")[-1].split(".")[0]
-        startt = float(datetime.strptime(t['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%s.%f'))
-        endt = float(datetime.strptime(t['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%s.%f'))
+        startt = float(dateutil_parse(t['start_time']).strftime('%s.%f'))
+        endt = float(dateutil_parse(t['end_time']).strftime('%s.%f'))
         duration_ms = (endt-startt)*1000
         duration = [test_name, duration_ms]
         durations.append(duration)
