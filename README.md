@@ -3,7 +3,7 @@
 This repository houses scripts to help analyze the performance of MongoDB Javascript integration tests, specifically those that utilize the `ReplSetTest` or `ShardingTest` fixture. To download logs from a given Evergreen task, run the following:
 
 ```
-python getlogs.py  <API_USER> <API_KEY> <TASK_ID>
+python getlogs.py  <API_USER> <API_KEY> --task <TASK_ID>
 ```
 
 This will download all the logs for tests run in that task and save them into a single file inside a `logs` directory. Each log file is named as a comma-separated tuple that includes identifying information about where the log came from e.g.
