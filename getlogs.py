@@ -133,6 +133,7 @@ def check_task(task_id, durations_only):
                     max_tries -= 1
                 else:
                     print repr(exc), "Giving up"
+                    break
 
 def check_version(version_id, durations_only, task_pattern):
     version = get_version(version_id)
