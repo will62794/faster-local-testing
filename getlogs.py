@@ -5,13 +5,12 @@ Fetch logs of a given Evergreen patch/version build, or one task within a build.
 import argparse
 import os
 import re
+import tempfile
 
 import requests
 from dateutil.parser import parse as dateutil_parse
 
 # MongoDB 'master' branch project identifier in Evergreen.
-import tqdm
-
 MONGO_PROJECT = "mongodb-mongo-master"
 
 # The Evergreen REST API endpoint.
@@ -69,15 +68,15 @@ def save_test_durations(tests, file_prefix):
     return durations
 
 def download_file(url, filename):
-    r = requests.get(url, stream=True)
-    chunk_size = 1024
-
-    with open(filename, 'wb') as fp:
-        for chunk in tqdm.tqdm(
-                r.iter_content(chunk_size=chunk_size),
-                unit='KB',
-                desc=filename):
-            fp.write(chunk)
+    with tempfile.NamedTemporaryFile() as tmp:
+        for command in [
+            'curl -L %s -O %s' % (url, tmp.name),
+            'cat %s > %s' % (tmp.name, filename)
+        ]:
+            print command
+            retval = os.system(command)
+            if retval != 0:
+                raise Exception('returned %d' % retval)
 
 def check_task(task_id, durations_only):
     """ Get all log files for a given task id. """
@@ -133,6 +132,7 @@ def check_task(task_id, durations_only):
                     max_tries -= 1
                 else:
                     print repr(exc), "Giving up"
+                    break
 
 def check_version(version_id, durations_only, task_pattern):
     version = get_version(version_id)
