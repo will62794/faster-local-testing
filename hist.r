@@ -40,7 +40,7 @@ file <- args[1]
 outfile <- args[2]
 repl <- read.table(file, header=TRUE, sep=",")
 
-# Create histograms for each unique (patch_id, build_variant, display_name, revision) combination.
+# Create histograms for each unique (patch_id, build_variant, display_name, revision, metric) combination.
 # There's probably a better way to do this without a for loop but that's works for now.
 combos <- unique(repl[,c("patch_id","build_variant","display_name","revision","metric")])
 for(row in 1:nrow(combos)){
@@ -50,18 +50,28 @@ for(row in 1:nrow(combos)){
      revision <- combos[row,"revision"]
      metric <- combos[row,"metric"]
 
+     isRollbackMetric <- grepl("RollbackTest", metric)
+
      # Select the subset of data we want.
      replsub <- repl[repl$patch_id == combos[row,"patch_id"] & repl$build_variant == combos[row,"build_variant"] & repl$display_name == combos[row,"display_name"] & repl$revision == combos[row,"revision"]& repl$metric == combos[row,"metric"],]
      # For sharding tests, use a larger scale.
-     xmax <- if(metric == "totalDuration") 100000 else if(is.element("stopShards", factor(repl$metric))) 20000 else 10000
-     ymax <- if(metric == "totalDuration") 50 else 300
-     binwidth <- 100
+     xmax <- if(metric == "totalDuration") 100000 
+               else if(is.element("stopShards", factor(repl$metric))) 20000
+               # For RollbackTest measurements tests, use a smaller scale.
+               else if(isRollbackMetric) 2000
+               else 10000
+     ymax <- if(metric == "totalDuration") 50 else if(isRollbackMetric) 20 else 300
+     binwidth <- if(isRollbackMetric) 50 else 100
      subplt <- histplot(replsub, metric, xmax, ymax, binwidth)
 
      # Save the plot.
      ident <- paste(patch_id, build_variant, revision, metric,sep =",")
      filepath <- paste("charts/", display_name, "/", ident, ".png", sep="")
-     print(paste("Saving plot to:", filepath, "with", nrow(replsub), "rows."))
+     print(paste("Saving plot."))
+     print(paste("Path:", filepath))
+     print(paste("Rows:", nrow(replsub)))
+     print(paste("Metric:", metric))
+     print("----------------")
      ggsave(filepath, plot=subplt, device="png", width=12, height=3)
 }
 
