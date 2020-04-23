@@ -37,6 +37,26 @@ def get_task(task_id):
     r = requests.get(url=url_task, headers=header())
     return r.json()
 
+def get_task_v2(task_id):
+    url_task = API_URL + "/tasks/" + task_id
+    r = requests.get(url=url_task, headers=header())
+    return r.json()
+
+def get_recent_versions(n):
+    url_versions = API_URL + "/projects/mongodb-mongo-master/recent_versions"
+    r = requests.get(url=url_versions, params={"limit": n}, headers=header())
+    return r.json()
+
+def get_builds_for_version(versionid):
+    url_versions = API_URL + "/versions/" + versionid + "/builds"
+    r = requests.get(url=url_versions, params={"limit": 100}, headers=header())
+    return r.json() 
+
+def get_tasks_for_build(buildid):
+    url_tasks = API_URL + "/builds/" + build_id + "/tasks"
+    r = requests.get(url=url_tasks, params={"limit": 100}, headers=header())
+    return r.json()
+
 def get_log(url):
     return requests.get(url).text
 
@@ -104,6 +124,30 @@ def check_task(task_id, durations_only):
         f.write(text)
     f.close()
 
+def check_task_duration(task_id):
+    task = get_task_v2(task_id)
+    task_log_url = task["logs"]["task_log"] + "&text=true"
+    r = requests.get(url=task_log_url, headers=header())
+    lines = r.text.split("\n")
+    lines  = filter(lambda l : "passed in" in l, lines)
+    for l in lines:
+        print l
+
+def suite_duration_test():
+    recent_versions = get_recent_versions(10)["versions"]
+    print recent_versions
+    for v in recent_versions:
+        versionid = v["versions"][0]["version_id"]
+        print v.keys()
+        builds = get_builds_for_version(versionid)
+        for b in builds:
+            # print b.keys()
+            if b["build_variant"] == "enterprise-rhel-62-64-bit":
+                buildid = b["build_variant"] + "_"
+                print b["version"]
+                for t in [tsk for tsk in b["tasks"] if "replica_sets_" in tsk]:
+                    print t
+
 if __name__ == "__main__":
     # Must provide Evergreen credentials via command line.
     API_USER = sys.argv[1]
@@ -117,3 +161,10 @@ if __name__ == "__main__":
     os.system("mkdir -p logs")
     
     check_task(task, durations_only)
+
+    # suite_duration_test()
+
+
+        
+
+
