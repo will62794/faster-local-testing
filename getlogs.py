@@ -10,6 +10,7 @@ import pprint
 import urllib2
 import os
 import time
+import re
 from dateutil.parser import parse as dateutil_parse
 
 # MongoDB 'master' branch project identifier in Evergreen.
@@ -52,9 +53,9 @@ def get_builds_for_version(versionid):
     r = requests.get(url=url_versions, params={"limit": 100}, headers=header())
     return r.json() 
 
-def get_tasks_for_build(buildid):
+def get_tasks_for_build(build_id):
     url_tasks = API_URL + "/builds/" + build_id + "/tasks"
-    r = requests.get(url=url_tasks, params={"limit": 100}, headers=header())
+    r = requests.get(url=url_tasks, params={"limit": 1000}, headers=header())
     return r.json()
 
 def get_log(url):
@@ -124,31 +125,31 @@ def check_task(task_id, durations_only):
         f.write(text)
     f.close()
 
-def check_task_duration(task_id):
-    task = get_task_v2(task_id)
-    task_log_url = task["logs"]["task_log"] + "&text=true"
+def get_suite_duration(task_object):
+    task_log_url = task_object["logs"]["task_log"] + "&text=true"
     r = requests.get(url=task_log_url, headers=header())
     lines = r.text.split("\n")
-    lines  = filter(lambda l : "passed in" in l, lines)
-    for l in lines:
-        print l
+    line  = filter(lambda l : re.search("not resource intensive.*passed in", l), lines)[0]
+    duration_secs = line.split(" ")[-2]
+    print line, duration_secs
 
-def suite_duration_test():
-    recent_versions = get_recent_versions(10)["versions"]
-    print recent_versions
+def suite_duration_recent_versions(suite_name, n):
+    recent_versions = get_recent_versions(n)["versions"]
     for v in recent_versions:
-        versionid = v["versions"][0]["version_id"]
-        print v.keys()
+        version = v["versions"][0]
+        print "Checking version: %s - %s" % (version["message"],version["revision"])
+        versionid = version["version_id"]
         builds = get_builds_for_version(versionid)
-        for b in builds:
-            # print b.keys()
-            if b["build_variant"] == "enterprise-rhel-62-64-bit":
-                buildid = b["build_variant"] + "_"
-                print b["version"]
-                for t in [tsk for tsk in b["tasks"] if "replica_sets_" in tsk]:
-                    print t
+        builds = filter(lambda b : b["build_variant"] == "enterprise-rhel-62-64-bit", builds)
+        assert len(builds) > 0
+        rhel_build = builds[0]
+        tasks = get_tasks_for_build(rhel_build["_id"])
+        replset_task = filter(lambda t : t["display_name"] == suite_name, tasks)[0]
+        get_suite_duration(replset_task)
+        print ""
 
 if __name__ == "__main__":
+
     # Must provide Evergreen credentials via command line.
     API_USER = sys.argv[1]
     API_KEY = sys.argv[2]
@@ -162,7 +163,14 @@ if __name__ == "__main__":
     
     check_task(task, durations_only)
 
-    # suite_duration_test()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--limit', default=5, type=int)
+    # args = parser.parse_args()
+
+    # print("~ Limit: {}".format(args.limit))
+
+
+    # suite_duration_recent_versions("replica_sets", 10)
 
 
         
