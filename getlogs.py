@@ -14,6 +14,7 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 from dateutil.parser import parse as dateutil_parse
+from multiprocessing import Pool
 
 # MongoDB 'master' branch project identifier in Evergreen.
 MONGO_PROJECT = "mongodb-mongo-master"
@@ -52,7 +53,7 @@ def get_recent_versions(n):
 
 def get_builds_for_version(versionid):
     url_versions = API_URL + "/versions/" + versionid + "/builds"
-    r = requests.get(url=url_versions, params={"limit": 100}, headers=header())
+    r = requests.get(url=url_versions, params={"limit": 500}, headers=header())
     return r.json() 
 
 def get_tasks_for_build(build_id):
@@ -151,12 +152,21 @@ def suite_durations_for_version(version, suite_name, n):
     return duration
 
 def suite_durations_recent_versions(suite_name, n):
+    print "Checking suite durations of '%s' for %d recent versions." % (suite_name, n)
     recent_versions = get_recent_versions(n)["versions"]
+    print "Retrieved recent versions"
     versions = [v["versions"][0] for v in recent_versions]
     durations = []
+    p = Pool(10)
+    responses = []
     for version in versions:
-        print "Checking version: %s - %s" % (version["message"],version["revision"])
-        duration = suite_durations_for_version(version, suite_name, n)
+        # print "Checking version: %s - %s" % (version["message"],version["revision"])
+        res = p.apply_async(suite_durations_for_version, (version, suite_name, n))
+        responses.append((version, res))
+    for res in responses:
+        version, result = res
+        duration = result.get()
+        print "Checked version: %s - %s" % (version["message"][:80],version["revision"])
         if duration:
             durations.append(duration)
             print "Suite '%s' duration: %fs" % (suite_name, duration)
@@ -167,10 +177,9 @@ def suite_durations_recent_versions(suite_name, n):
 def chart_recent_suite_durations(suite_name, n_versions):
     durations = suite_durations_recent_versions(suite_name, n_versions)
     plt.style.use('ggplot')
-    plt.hist(durations, bins = 10, edgecolor='black', linewidth=1.2)
+    plt.hist(durations, bins = 20, edgecolor='black', linewidth=1.2)
     filename = "charts/%s_suite_durations.png" % suite_name
     plt.savefig(filename)
-
 
 if __name__ == "__main__":
     # Must provide Evergreen credentials via command line.
@@ -184,8 +193,8 @@ if __name__ == "__main__":
     # Create output directory if it doesn't exist.
     os.system("mkdir -p logs")
     
-    check_task(task, durations_only)
-    # chart_recent_suite_durations("replica_sets", 20)
+    # check_task(task, durations_only)
+    chart_recent_suite_durations("replica_sets", 100)
 
 
         
