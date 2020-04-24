@@ -11,6 +11,8 @@ import urllib2
 import os
 import time
 import re
+import matplotlib.pyplot as plt
+import numpy as np
 from dateutil.parser import parse as dateutil_parse
 
 # MongoDB 'master' branch project identifier in Evergreen.
@@ -129,27 +131,48 @@ def get_suite_duration(task_object):
     task_log_url = task_object["logs"]["task_log"] + "&text=true"
     r = requests.get(url=task_log_url, headers=header())
     lines = r.text.split("\n")
-    line  = filter(lambda l : re.search("not resource intensive.*passed in", l), lines)[0]
-    duration_secs = line.split(" ")[-2]
-    print line, duration_secs
+    lines  = filter(lambda l : re.search("not resource intensive.*passed in", l), lines)
+    if len(lines) > 0 :
+        line = lines[0]
+        duration_secs = float(line.split(" ")[-2])
+        return duration_secs
+    else:
+        return None
 
-def suite_duration_recent_versions(suite_name, n):
+def suite_durations_for_version(version, suite_name, n):
+    versionid = version["version_id"]
+    builds = get_builds_for_version(versionid)
+    builds = filter(lambda b : b["build_variant"] == "enterprise-rhel-62-64-bit", builds)
+    assert len(builds) > 0
+    rhel_build = builds[0]
+    tasks = get_tasks_for_build(rhel_build["_id"])
+    replset_task = filter(lambda t : t["display_name"] == suite_name, tasks)[0]
+    duration = get_suite_duration(replset_task)
+    return duration
+
+def suite_durations_recent_versions(suite_name, n):
     recent_versions = get_recent_versions(n)["versions"]
-    for v in recent_versions:
-        version = v["versions"][0]
+    versions = [v["versions"][0] for v in recent_versions]
+    durations = []
+    for version in versions:
         print "Checking version: %s - %s" % (version["message"],version["revision"])
-        versionid = version["version_id"]
-        builds = get_builds_for_version(versionid)
-        builds = filter(lambda b : b["build_variant"] == "enterprise-rhel-62-64-bit", builds)
-        assert len(builds) > 0
-        rhel_build = builds[0]
-        tasks = get_tasks_for_build(rhel_build["_id"])
-        replset_task = filter(lambda t : t["display_name"] == suite_name, tasks)[0]
-        get_suite_duration(replset_task)
-        print ""
+        duration = suite_durations_for_version(version, suite_name, n)
+        if duration:
+            durations.append(duration)
+            print "Suite '%s' duration: %fs" % (suite_name, duration)
+        else:
+            print "No duration could be retrieved"
+    return durations
+
+def chart_recent_suite_durations(suite_name, n_versions):
+    durations = suite_durations_recent_versions(suite_name, n_versions)
+    plt.style.use('ggplot')
+    plt.hist(durations, bins = 10, edgecolor='black', linewidth=1.2)
+    filename = "charts/%s_suite_durations.png" % suite_name
+    plt.savefig(filename)
+
 
 if __name__ == "__main__":
-
     # Must provide Evergreen credentials via command line.
     API_USER = sys.argv[1]
     API_KEY = sys.argv[2]
@@ -162,15 +185,7 @@ if __name__ == "__main__":
     os.system("mkdir -p logs")
     
     check_task(task, durations_only)
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--limit', default=5, type=int)
-    # args = parser.parse_args()
-
-    # print("~ Limit: {}".format(args.limit))
-
-
-    # suite_duration_recent_versions("replica_sets", 10)
+    # chart_recent_suite_durations("replica_sets", 20)
 
 
         
