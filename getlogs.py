@@ -193,8 +193,8 @@ if __name__ == "__main__":
     # Create output directory if it doesn't exist.
     os.system("mkdir -p logs")
     
-    # check_task(task, durations_only)
-    chart_recent_suite_durations("replica_sets", 100)
+    check_task(task, durations_only)
+    # chart_recent_suite_durations("replica_sets", 100)
 
 
         
